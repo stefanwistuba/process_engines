@@ -1,0 +1,281 @@
+{
+    "connections": [
+        {
+            "in_id": "{09f9c601-2ac6-4433-82a3-6e9827431558}",
+            "in_index": 6,
+            "out_id": "{ff4e10d9-fb83-4ef1-9257-1e118a9c2c23}",
+            "out_index": 0
+        },
+        {
+            "in_id": "{9fe4c984-9f68-4a67-878c-4a4cdd1976f6}",
+            "in_index": 2,
+            "out_id": "{b0549222-4ac6-4404-ad17-413bfbbc9eb1}",
+            "out_index": 0
+        },
+        {
+            "in_id": "{9fe4c984-9f68-4a67-878c-4a4cdd1976f6}",
+            "in_index": 1,
+            "out_id": "{bad5f29d-4064-4adc-8752-a8efbe154df2}",
+            "out_index": 0
+        },
+        {
+            "in_id": "{09f9c601-2ac6-4433-82a3-6e9827431558}",
+            "in_index": 5,
+            "out_id": "{bad5f29d-4064-4adc-8752-a8efbe154df2}",
+            "out_index": 0
+        },
+        {
+            "in_id": "{09f9c601-2ac6-4433-82a3-6e9827431558}",
+            "in_index": 1,
+            "out_id": "{410ad1ca-0d1c-44fe-95b1-bd363efcf7fd}",
+            "out_index": 0
+        },
+        {
+            "in_id": "{9fe4c984-9f68-4a67-878c-4a4cdd1976f6}",
+            "in_index": 0,
+            "out_id": "{09f9c601-2ac6-4433-82a3-6e9827431558}",
+            "out_index": 0
+        }
+    ],
+    "nodes": [
+        {
+            "id": "{ff4e10d9-fb83-4ef1-9257-1e118a9c2c23}",
+            "model": {
+                "name": "Boolean",
+                "value": true
+            },
+            "position": {
+                "x": 1053.3333333333335,
+                "y": 658.3333333333335
+            }
+        },
+        {
+            "id": "{b0549222-4ac6-4404-ad17-413bfbbc9eb1}",
+            "model": {
+                "name": "String",
+                "value": "output.txt"
+            },
+            "position": {
+                "x": 1290.8333333333335,
+                "y": 611.6666666666665
+            }
+        },
+        {
+            "id": "{410ad1ca-0d1c-44fe-95b1-bd363efcf7fd}",
+            "model": {
+                "name": "String",
+                "value": "~/marks.txt"
+            },
+            "position": {
+                "x": 860.8333333333333,
+                "y": 458.33333333333337
+            }
+        },
+        {
+            "id": "{9fe4c984-9f68-4a67-878c-4a4cdd1976f6}",
+            "model": {
+                "name": "ToolNode",
+                "tool": {
+                    "name": "cp",
+                    "path": "cp ",
+                    "ports": [
+                        {
+                            "name": "Dependencies",
+                            "port_direction": "in",
+                            "port_index": 0,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "dependency",
+                            "value": null
+                        },
+                        {
+                            "name": "arg0",
+                            "port_direction": "in",
+                            "port_index": 1,
+                            "position": 0,
+                            "required": true,
+                            "shortName": "",
+                            "type": "string",
+                            "value": "~/marks_sorted.txt"
+                        },
+                        {
+                            "name": "arg1",
+                            "port_direction": "in",
+                            "port_index": 2,
+                            "position": 1,
+                            "required": true,
+                            "shortName": "",
+                            "type": "string",
+                            "value": "output.txt"
+                        },
+                        {
+                            "name": "stdin",
+                            "port_direction": "in",
+                            "port_index": 3,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "pipe",
+                            "value": null
+                        },
+                        {
+                            "name": "Dependents",
+                            "port_direction": "out",
+                            "port_index": 0,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "dependency",
+                            "value": null
+                        },
+                        {
+                            "name": "stdout",
+                            "port_direction": "out",
+                            "port_index": 1,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "pipe",
+                            "value": null
+                        }
+                    ],
+                    "version": "8.26"
+                }
+            },
+            "position": {
+                "x": 1827.5,
+                "y": 410.83333333333326
+            }
+        },
+        {
+            "id": "{bad5f29d-4064-4adc-8752-a8efbe154df2}",
+            "model": {
+                "name": "String",
+                "value": "marks_sorted.txt"
+            },
+            "position": {
+                "x": 856.666666666667,
+                "y": 595
+            }
+        },
+        {
+            "id": "{09f9c601-2ac6-4433-82a3-6e9827431558}",
+            "model": {
+                "name": "ToolNode",
+                "tool": {
+                    "name": "sort",
+                    "path": "sort ",
+                    "ports": [
+                        {
+                            "name": "Dependencies",
+                            "port_direction": "in",
+                            "port_index": 0,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "dependency",
+                            "value": null
+                        },
+                        {
+                            "name": "arg0",
+                            "port_direction": "in",
+                            "port_index": 1,
+                            "position": 0,
+                            "required": true,
+                            "shortName": "",
+                            "type": "string",
+                            "value": "~/marks.txt"
+                        },
+                        {
+                            "name": "field_separator",
+                            "port_direction": "in",
+                            "port_index": 2,
+                            "position": 1,
+                            "required": false,
+                            "shortName": "t",
+                            "type": "string",
+                            "value": null
+                        },
+                        {
+                            "name": "numeric_sort",
+                            "port_direction": "in",
+                            "port_index": 3,
+                            "position": 2,
+                            "required": false,
+                            "shortName": "n",
+                            "type": "flag",
+                            "value": false
+                        },
+                        {
+                            "name": "key",
+                            "port_direction": "in",
+                            "port_index": 4,
+                            "position": 3,
+                            "required": false,
+                            "shortName": "k",
+                            "type": "string",
+                            "value": null
+                        },
+                        {
+                            "name": "output",
+                            "port_direction": "in",
+                            "port_index": 5,
+                            "position": 4,
+                            "required": false,
+                            "shortName": "o",
+                            "type": "string",
+                            "value": "~/marks_sorted.txt"
+                        },
+                        {
+                            "name": "reverse",
+                            "port_direction": "in",
+                            "port_index": 6,
+                            "position": 5,
+                            "required": false,
+                            "shortName": "r",
+                            "type": "flag",
+                            "value": true
+                        },
+                        {
+                            "name": "stdin",
+                            "port_direction": "in",
+                            "port_index": 7,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "pipe",
+                            "value": null
+                        },
+                        {
+                            "name": "Dependents",
+                            "port_direction": "out",
+                            "port_index": 0,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "dependency",
+                            "value": null
+                        },
+                        {
+                            "name": "stdout",
+                            "port_direction": "out",
+                            "port_index": 1,
+                            "position": 0,
+                            "required": false,
+                            "shortName": "",
+                            "type": "pipe",
+                            "value": null
+                        }
+                    ],
+                    "version": "8.26"
+                }
+            },
+            "position": {
+                "x": 1309.1666666666667,
+                "y": 207.5
+            }
+        }
+    ]
+}
+

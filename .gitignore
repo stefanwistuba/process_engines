@@ -1,0 +1,16 @@
+node_modules
+frontend/**/package-lock.json
+modules/**/package-lock.json
+build
+._.DS_Store
+.DS_Store
+npm-debug.log*
+bundle.css
+logs
+.vscode
+.prettierrc
+.eslintrc.js
+
+settings.json
+
+*.history*
