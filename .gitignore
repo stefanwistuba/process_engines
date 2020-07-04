@@ -10,6 +10,7 @@ logs
 .vscode
 .prettierrc
 .eslintrc.js
+__pycache__
 
 settings.json
 
