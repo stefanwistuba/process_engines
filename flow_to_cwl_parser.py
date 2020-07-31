@@ -25,6 +25,7 @@ class FlowToCWLParser:
         self.steps = []
         self.workflow_input_list = []
         self.workflow_job_values = []
+        self.workflow_output_list = []
     
     """
         Function to construct the parameter input file (*.yml) required for the
@@ -56,6 +57,7 @@ class FlowToCWLParser:
         inputs / outputs
     """
     def parse_commands(self):
+        prev_node_stdout = None
         for node in self.nodes:
             # Currently we only consider FileInput, FileOutput and ToolNode
             if node['model']['name'] == 'FileInput':
@@ -69,21 +71,45 @@ class FlowToCWLParser:
                     input_file_path = os.path.expanduser(input_file_path)
 
                 self.workflow_job_values.append([{ 'cat_path': {'class': 'File', 'path': input_file_path }}])
+                self.workflow_output_list.append([{ 'name': 'cat_stdout', 'type': 'stdout' }])
+                # Set Flag for next node to know it will receive stdin
+                prev_node_stdout = {'node_id': node['id'], 'name': 'cat_stdout'}
             
             elif node['model']['name'] == 'FileOutput':
+                fileoutput_inputs = []
+                if prev_node_stdout != None:
+                    for cnn in self.connections:
+                        if cnn['out_id'] == prev_node_stdout['node_id'] and cnn['out_index'] == 1 and cnn['in_id'] == node['id']:
+                            fileoutput_inputs.append({
+                                prev_node_stdout['name']: {'type': 'stdin'}
+                            })
+                    prev_node_stdout = None
+
                 self.steps.append('print')
-                self.workflow_input_list.append([
+                fileoutput_inputs.append(
                     { 'print_outputFilePath': { 'type': 'File', 'inputBinding': { 'position': 0}}}
-                    ])
+                    )
+                self.workflow_input_list.append(fileoutput_inputs)
 
                 output_file_path = node["model"]["outputFilePath"]
                 if '~' in output_file_path:
                     output_file_path = os.path.expanduser(output_file_path)
-                print(output_file_path)
 
                 self.workflow_job_values.append([{ 'print_outputFilePath': {'class': 'File', 'path': output_file_path }}])
+                self.workflow_output_list.append([])
                 
             elif node['model']['name'] == 'ToolNode':
+                input_cwl_list = []
+                input_job_values = []
+
+                if prev_node_stdout != None:
+                    for cnn in self.connections:
+                        if cnn['out_id'] == prev_node_stdout['node_id'] and cnn['in_id'] == node['id'] and cnn['in_index'] == 4:
+                            input_cwl_list.append({
+                                prev_node_stdout['name']: {'type': 'stdin'}
+                            })
+                    prev_node_stdout = None
+
                 # Extract shell command
                 step_name = node['model']['tool']['path'].strip()
                 self.steps.append(step_name)
@@ -96,9 +122,19 @@ class FlowToCWLParser:
                         'shortName': port['shortName']
                     } for port in ports if port['value'] != None and port['value']
                 ]
+                # Check if the ToolNode's stdout has a connection to another input
+                output_appended = False
+                for port in ports:
+                    if port['name'] == 'stdout':
+                        stdout_index = port['port_index']
+                        for cnn in self.connections:
+                            if cnn['out_id'] == node['id'] and cnn['out_index'] == stdout_index:
+                                self.workflow_output_list.append([{ 'name': f'{step_name}_stdout',  'type': 'stdout' }])
+                                output_appended = True
+                                prev_node_stdout = {'node_id': node['id'], 'name': f'{step_name}_stdout'}
+                if not output_appended:
+                    self.workflow_output_list.append(None)
 
-                input_cwl_list = []
-                input_job_values = []
                 for arg in arguments:                    
                     # Check if the value contains a dot, an indication for a file
                     # Required as CWL needs to use the 'File' type for actual files
@@ -125,7 +161,6 @@ class FlowToCWLParser:
 
                         input_cwl_list.append(cwl_input)
                         input_job_values.append({f'{step_name}_{arg["key"]}': arg['value']})
-
                 self.workflow_input_list.append(input_cwl_list)
                 self.workflow_job_values.append(input_job_values)
     
@@ -144,28 +179,46 @@ class FlowToCWLParser:
         self.parse_commands()
         # Standard opener for cwl command files
         cwl_opener = ['#!/usr/bin/env cwl-runner\n\n',
-                          'cwlVersion: v1.0\n']
+                          'cwlVersion: v1.1\n']
 
         # 1. Create cwl files for each step in the workflow
+        dependent_inputs = []
         for idx, step in enumerate(self.steps):
             cwl_file_name = f'{step}.cwl'
             cwl_basecommand = f'baseCommand: [{step}]\n'
+            cwl_stdout = ''
             if step == 'print':
-                cwl_basecommand = f'baseCommand: [>]\n'
+                cwl_basecommand = f'baseCommand: [xargs, echo]\n'
+
+            if self.workflow_output_list[idx] != None:
+                for out in self.workflow_output_list[idx]:
+                    if out['type'] == 'stdout':
+                        cwl_stdout = f'stdout: {step}_output.txt\n'
+
             cwl_inputs = {'inputs': self.workflow_input_list[idx] }
-            cwl_outputs = {'outputs': [] }
+            for step_input in cwl_inputs['inputs']:
+                key = list(step_input.keys())[0]
+                key_origin = key.split('_')[0]
+                if step_input[key]['type'] == 'stdin':
+                    dependent_inputs.append({'name': f'{key_origin}/{key}', 'belongsTo': step, 'param': key})
+            formatted_outputs = []
+
+            if self.workflow_output_list[idx] != None:
+                for elem in self.workflow_output_list[idx]:
+                    formatted_outputs.append({ elem['name']: { 'type': elem['type']}})
+            cwl_outputs = {'outputs': formatted_outputs }
 
             with open(cwl_file_name, 'w') as output:
                 output.writelines(cwl_opener)
                 output.write('class: CommandLineTool\n')
                 output.write(cwl_basecommand)
+                output.write(cwl_stdout)
 
                 stream_input = yaml.dump(cwl_inputs, default_flow_style=False)
                 stream_output = yaml.dump(cwl_outputs, default_flow_style=False)
                 # Remove leading scores, but keep the ones for the prefix
                 output.write(stream_input.replace('- ', '  '))
                 output.write(stream_output.replace('- ', '  '))
-
 
         wf_name = '-'.join(self.steps)
         wf_steps= {}
@@ -180,24 +233,35 @@ class FlowToCWLParser:
         workflow_param_name = f'{wf_name}-params.yml'
         with open(workflow_param_name, 'w') as output:
                 stream = yaml.dump(flattened_job_values, default_flow_style=False)
-                output.write(stream.replace('- ', ''))
+                stream = stream.replace('- ', '')
+                stream = stream.replace('\'\'\'', '\'')
+                output.write(stream)
         
         wf_inputs = []
         input_keys = []
+        output_keys = []
         for idx, lst in enumerate(self.workflow_input_list):
             for param in lst:
                 current_param_key = list(param.keys())[0]
-                input_keys.append(current_param_key)
-                wf_inputs.append({ f'{current_param_key}': param[current_param_key]['type']})
-        
+                if not param[current_param_key]['type'] == 'stdin':
+                    input_keys.append(current_param_key)
+                    wf_inputs.append({ f'{current_param_key}': param[current_param_key]['type']})
+                else:
+                    output_keys.append(current_param_key)
         for idx, step in enumerate(self.steps):
             new_step = {}
 
             relevant_params = [{param: param} for param in input_keys if f'{step}_' in param]
+
+            for d_input in dependent_inputs:
+                if d_input['belongsTo'] == step:
+                    relevant_params.append({ d_input['param']: d_input['name']})
+
+            output_params = [param for param in output_keys if f'{step}_' in param]
             new_step[step] = {
                 'run': f'{step}.cwl',
                 'in': relevant_params,
-                'out': []
+                'out': f'{output_params}'
             }
             wf_steps['steps'].append(new_step)
 
@@ -206,13 +270,16 @@ class FlowToCWLParser:
         with open(worflow_file_name, 'w') as output:
             output.writelines(cwl_opener)
             output.write('class: Workflow\n')
-
+            
             wf_params_stream = yaml.dump({'inputs': wf_inputs }, default_flow_style=False)
-            output.write(wf_params_stream.replace('-', ' '))
+            wf_params_stream = wf_params_stream.replace('-', ' ')
+            output.write(wf_params_stream)
 
             output.write('outputs: []\n')
 
             wf_step_stream = yaml.dump(wf_steps, default_flow_style=False)
-            output.write(wf_step_stream.replace('-', ' '))
+            wf_step_stream = wf_step_stream.replace('-', ' ')
+            wf_step_stream = wf_step_stream.replace("\'", '')
+            output.write(wf_step_stream)
         
         return (worflow_file_name, workflow_param_name)

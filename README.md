@@ -61,10 +61,9 @@ CWL-Specification.
 
 It can be executed like this:
 
-Currently only the Sort-CP Example works.
-
 ```sh
 python cwl_engine.py -p . -wf example_sort_cp.flow
+python3 cwl_engine.py -p . -wf example_awk.flow
 ```
 
 Additional arguments are:
