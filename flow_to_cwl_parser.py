@@ -58,6 +58,7 @@ class FlowToCWLParser:
     """
     def parse_commands(self):
         prev_node_stdout = None
+        prev_node_dependency = None
         for node in self.nodes:
             # Currently we only consider FileInput, FileOutput and ToolNode
             if node['model']['name'] == 'FileInput':
@@ -109,6 +110,14 @@ class FlowToCWLParser:
                                 prev_node_stdout['name']: {'type': 'stdin'}
                             })
                     prev_node_stdout = None
+                
+                if prev_node_dependency != None:
+                    for cnn in self.connections:
+                        if cnn['out_id'] == prev_node_dependency['node_id'] and cnn['in_id'] == node['id'] and cnn['in_index'] == 0:
+                            input_cwl_list.append({
+                                prev_node_dependency['name']: {'type': 'stdin'}
+                            })
+                    prev_node_dependency = None
 
                 # Extract shell command
                 step_name = node['model']['tool']['path'].strip()
@@ -124,7 +133,10 @@ class FlowToCWLParser:
                 ]
                 # Check if the ToolNode's stdout has a connection to another input
                 output_appended = False
+                dependency_info = None
                 for port in ports:
+                    if port['type'] == 'dependency':
+                        dependency_info = port
                     if port['name'] == 'stdout':
                         stdout_index = port['port_index']
                         for cnn in self.connections:
@@ -133,7 +145,16 @@ class FlowToCWLParser:
                                 output_appended = True
                                 prev_node_stdout = {'node_id': node['id'], 'name': f'{step_name}_stdout'}
                 if not output_appended:
-                    self.workflow_output_list.append(None)
+                    # Artificial Dependency through params
+                    dependency_port_index = dependency_info['port_index']
+                    inserted_output = False
+                    for cnn in self.connections:
+                        if cnn['out_id'] == node['id'] and cnn['out_index'] == dependency_port_index:
+                            self.workflow_output_list.append([{'name': f'{step_name}_artificial',  'type': 'stdout'}])
+                            inserted_output = True
+                            prev_node_dependency = {'node_id': node['id'], 'name': f'{step_name}_artificial'}
+                    if not inserted_output:
+                        self.workflow_output_list.append(None)
 
                 for arg in arguments:                    
                     # Check if the value contains a dot, an indication for a file
